@@ -52,6 +52,10 @@ class FileAspects
      */
     public function processFile($fileProcessingService, $driver, $processedFile)
     {
+        if (!$processedFile->exists()) {
+            return;
+        }
+
         if ($processedFile->usesOriginalFile() === true || $processedFile->isUpdated() === true) {
             $fileForLocalProcessing = $processedFile->getForLocalProcessing();
             $this->service->process($fileForLocalProcessing, $processedFile->getExtension());
