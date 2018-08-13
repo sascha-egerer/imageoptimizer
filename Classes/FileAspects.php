@@ -56,15 +56,27 @@ class FileAspects
             return;
         }
 
+        $fileExtension = $processedFile->getExtension();
+        if (empty($fileExtension) && $processedFile->getOriginalFile()) {
+            $fileExtension = $processedFile->getOriginalFile()->getExtension();
+        }
+
+        if (!$this->service->fileTypeHasProcessor($fileExtension)) {
+            return;
+        }
+
         if ($processedFile->usesOriginalFile() === true || $processedFile->isUpdated() === true) {
             $fileForLocalProcessing = $processedFile->getForLocalProcessing();
-            $this->service->process($fileForLocalProcessing, $processedFile->getExtension());
+            $this->service->process($fileForLocalProcessing, $fileExtension);
 
             if ($processedFile->getSha1() !== sha1_file($fileForLocalProcessing)) {
                 $processedFile->updateWithLocalFile($fileForLocalProcessing);
                 $processedFileRepository = GeneralUtility::makeInstance(ProcessedFileRepository::class);
                 $processedFileRepository->add($processedFile);
             }
+
+            // remove the temporary processed file
+            unlink($fileForLocalProcessing);
         }
     }
 }

@@ -63,7 +63,7 @@ class OptimizeImageService
         }
         $when = $fileIsUploaded === true ? 'Upload' : 'Processing';
 
-        if ((bool)$this->configuration[$extension . 'On' . $when] === false && $testMode === false) {
+        if (!$this->fileTypeHasProcessor($extension, $when, $testMode) || $testMode === true) {
             return;
         }
 
@@ -106,6 +106,29 @@ class OptimizeImageService
         GeneralUtility::fixPermissions($file);
 
         return $executionWasSuccessful;
+    }
+
+    /**
+     * @param string $extension The file extension
+     * @param string $updateType The update type. Could be "Upload" or "Processing"
+     * @return bool
+     */
+    public function fileTypeHasProcessor($extension, $updateType = 'Processing')
+    {
+        if ($updateType !== 'Upload' && $updateType !== 'Processing') {
+            return false;
+        }
+
+        $extension = strtolower($extension);
+        if ($extension === 'jpeg') {
+            $extension = 'jpg';
+        }
+
+        if ((bool)$this->configuration[$extension . 'On' . $updateType] === true) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
