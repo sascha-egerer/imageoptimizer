@@ -76,7 +76,7 @@ class FileAspects
             }
 
             // remove the temporary processed file
-            unlink($fileForLocalProcessing);
+            GeneralUtility::unlink_tempfile($fileForLocalProcessing);
         }
     }
 }
