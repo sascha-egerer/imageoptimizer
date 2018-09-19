@@ -88,21 +88,7 @@ class OptimizeImageService
         $returnValue = 0;
         CommandUtility::exec($this->command, $this->output, $returnValue);
         $executionWasSuccessful = $returnValue == 0;
-        if (!$testMode) {
-            $this->logger->log(
-                $executionWasSuccessful ? LogLevel::INFO : LogLevel::ERROR,
-                $executionWasSuccessful ? 'Optimization was successful' : 'Optimization failed',
-                [
-                    'file' => $file,
-                    'fileExtension' => $extension,
-                    'fileisUploaded' => $fileIsUploaded ? 1 : 0,
-                    'command' => $this->command,
-                    'returnValue' => $returnValue,
-                    'output' => $this->output
-                ]
-            );
 
-        }
         GeneralUtility::fixPermissions($file);
 
         return $executionWasSuccessful;

@@ -1,6 +1,9 @@
 <?php
 namespace Lemming\Imageoptimizer;
 
+use TYPO3\CMS\Core\Log\Logger;
+use TYPO3\CMS\Core\Log\LogLevel;
+use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\Resource\FileInterface;
 use TYPO3\CMS\Core\Resource\Folder;
 use TYPO3\CMS\Core\Resource\ProcessedFileRepository;
@@ -8,15 +11,20 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 class FileAspects
 {
-
     /**
      * @var OptimizeImageService
      */
     protected $service;
 
+    /**
+     * @var Logger
+     */
+    protected $logger;
+
     public function __construct()
     {
         $this->service = GeneralUtility::makeInstance(OptimizeImageService::class);
+        $this->logger = GeneralUtility::makeInstance(LogManager::class)->getLogger(__CLASS__);
     }
 
     /**
@@ -52,7 +60,10 @@ class FileAspects
      */
     public function processFile($fileProcessingService, $driver, $processedFile)
     {
-        if (!$processedFile->exists()) {
+        if (
+            !$processedFile->exists()
+            || !($processedFile->usesOriginalFile() === true || $processedFile->isUpdated() === true)
+        ) {
             return;
         }
 
@@ -65,18 +76,27 @@ class FileAspects
             return;
         }
 
-        if ($processedFile->usesOriginalFile() === true || $processedFile->isUpdated() === true) {
-            $fileForLocalProcessing = $processedFile->getForLocalProcessing();
-            $this->service->process($fileForLocalProcessing, $fileExtension);
-
-            if ($processedFile->getSha1() !== sha1_file($fileForLocalProcessing)) {
-                $processedFile->updateWithLocalFile($fileForLocalProcessing);
-                $processedFileRepository = GeneralUtility::makeInstance(ProcessedFileRepository::class);
-                $processedFileRepository->add($processedFile);
-            }
-
-            // remove the temporary processed file
-            GeneralUtility::unlink_tempfile($fileForLocalProcessing);
+        $fileForLocalProcessing = $processedFile->getForLocalProcessing();
+        $processingWasSuccessfull = $this->service->process($fileForLocalProcessing, $fileExtension);
+        if (!$processingWasSuccessfull) {
+            $this->logger->log(
+                LogLevel::ERROR,
+                'Optimization failed.',
+                [
+                    'output' => $this->service->getOutput(),
+                    'fileIdentifier' => $processedFile->getIdentifier(),
+                    'storage' => $processedFile->getStorage()->getName()
+                ]
+            );
         }
+
+        if ($processedFile->getSha1() !== sha1_file($fileForLocalProcessing)) {
+            $processedFile->updateWithLocalFile($fileForLocalProcessing);
+            $processedFileRepository = GeneralUtility::makeInstance(ProcessedFileRepository::class);
+            $processedFileRepository->add($processedFile);
+        }
+
+        // remove the temporary processed file
+        GeneralUtility::unlink_tempfile($fileForLocalProcessing);
     }
 }
