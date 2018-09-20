@@ -6,6 +6,7 @@ use TYPO3\CMS\Core\Log\LogLevel;
 use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\Resource\FileInterface;
 use TYPO3\CMS\Core\Resource\Folder;
+use TYPO3\CMS\Core\Resource\ProcessedFile;
 use TYPO3\CMS\Core\Resource\ProcessedFileRepository;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -61,8 +62,8 @@ class FileAspects
     public function processFile($fileProcessingService, $driver, $processedFile)
     {
         if (
-            !$processedFile->exists()
-            || !($processedFile->usesOriginalFile() === true || $processedFile->isUpdated() === true)
+            !$processedFile->exists() ||
+            !$processedFile->isUpdated()
         ) {
             return;
         }
@@ -90,7 +91,8 @@ class FileAspects
             );
         }
 
-        if ($processedFile->getSha1() !== sha1_file($fileForLocalProcessing)) {
+        if ($processingWasSuccessfull && $processedFile->getSha1() !== sha1_file($fileForLocalProcessing)) {
+            $processedFile->setName($processedFile->getName());
             $processedFile->updateWithLocalFile($fileForLocalProcessing);
             $processedFileRepository = GeneralUtility::makeInstance(ProcessedFileRepository::class);
             $processedFileRepository->add($processedFile);

@@ -3,7 +3,6 @@ namespace Lemming\Imageoptimizer;
 
 use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\Log\Logger;
-use TYPO3\CMS\Core\Log\LogLevel;
 use TYPO3\CMS\Core\Utility\CommandUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -58,13 +57,13 @@ class OptimizeImageService
             }
         }
         $extension = strtolower($extension);
-        if ($extension == 'jpeg') {
+        if ($extension === 'jpeg') {
             $extension = 'jpg';
         }
         $when = $fileIsUploaded === true ? 'Upload' : 'Processing';
 
-        if (!$this->fileTypeHasProcessor($extension, $when, $testMode) || $testMode === true) {
-            return;
+        if (!$this->fileTypeHasProcessor($extension, $when) || $testMode === true) {
+            return true;
         }
 
         $binary = CommandUtility::getCommand(escapeshellcmd($this->configuration[$extension . 'Binary']));
@@ -87,7 +86,7 @@ class OptimizeImageService
         $this->command = $binary . ' ' . $parameters . ' 2>&1';
         $returnValue = 0;
         CommandUtility::exec($this->command, $this->output, $returnValue);
-        $executionWasSuccessful = $returnValue == 0;
+        $executionWasSuccessful = $returnValue === 0;
 
         GeneralUtility::fixPermissions($file);
 
@@ -110,11 +109,7 @@ class OptimizeImageService
             $extension = 'jpg';
         }
 
-        if ((bool)$this->configuration[$extension . 'On' . $updateType] === true) {
-            return true;
-        }
-
-        return false;
+        return (bool)$this->configuration[$extension . 'On' . $updateType] === true;
     }
 
     /**
